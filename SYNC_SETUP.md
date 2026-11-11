@@ -1,11 +1,12 @@
-# Dropbox共有記録の初期設定
+# Dropboxアプリ専用フォルダでの共有記録・初期設定
 
 学力診断マップ: https://hiroshitakaoka-tech.github.io/learning-map/
 
 ## 構成と注意
 - GitHub Pages: 静的HTML、274診断課題、記録画面
 - Cloudflare Worker: 共通アクセスコードの検証・Dropbox APIとの通信
-- Dropbox: `/原因追跡型学力診断/records/u-xxxxxxxxxxxxxxxxxxxxxxxx.json` に利用者別保存
+- Dropbox: **App folder方式**。Dropbox上の `/Apps/<アプリ名>/records/u-xxxxxxxxxxxxxxxxxxxxxxxx.json` に利用者別保存。APIが扱うパスは `/records/u-xxxxxxxxxxxxxxxxxxxxxxxx.json` （アプリ専用フォルダをルートとする相対パス）です。
+- 従来の共有フォルダ `/原因追跡型学力診断` およびその共有URLには**アクセスせず、同期先にも使いません**。
 - 診断記録、Dropboxアクセストークン、共通アクセスコードをGitHubに書き込まないでください。
 - 氏名は「記録者の選択」であり、本人認証ではありません。共通アクセスコードを知る人は、他の利用者のIDを選び、閲覧・更新できます。これは学校全体向けの厳密な個人認証・権限分離ではなく、信頼できる家庭・教員間の共通コード方式です。
 - 既存の端末内記録（localStorage）とJSONバックアップ機能は残ります。共有を設定するまで従来通り使えます。
@@ -14,9 +15,10 @@
 ## 1. Dropboxアプリの作成（管理者のみ）
 https://www.dropbox.com/developers/apps
 
-「Create app」を開き、Scoped access → Full Dropbox を選択し、任意の名前で作成。
-※ 既存の共有フォルダを使用するため、App folder方式ではなくFull Dropboxが必要です。
-※ 認可されたアプリには共有フォルダ以外もAPI権限が及びます。重要な他のDropboxデータがある場合は専用アカウントの利用を検討してください。
+「Create app」を開き、**Scoped access → App folder** を選択し、任意の名前（例：LearningMapRecords）で**新しいAPIアプリ**を作成。
+※ Full Dropbox方式は選択しないでください。App folder方式では、アプリは専用フォルダの外にアクセスできません。
+※ App folder方式では既存の共有フォルダを直接指定・共有できません。今回の教員・保護者間の共有はCloudflare Workerが仲介します。
+※ 既にFull Dropbox方式で作成・認可したアプリは、そのまま流用せず、App folder方式の新アプリとして作成・認可してください。
 
 Permissions で以下にチェックを入れ、Saveします：
 - files.metadata.read
@@ -56,7 +58,7 @@ https://hiroshitakaoka-tech.github.io/learning-map/
 
 上部の「☁ Dropbox共有記録」を開き、
 **氏名**、**立場**、**共通アクセスコード**を入力し、「この利用者でDropboxに接続」を押します。API URLは `sync-config.js` の公開URLから初期表示します（未配備時のみ空欄）。新規の利用者IDは自動生成し、同姓同名も区別します。
-初回は自動で `records` フォルダと、使用者ごとのJSONを作成します。保存先はWorker内の定数で固定され、ブラウザーから任意のパスを指定できません。
+初回はアプリ専用フォルダ内に `records` フォルダを作成し、使用者ごとのJSONを保存します。Worker内の固定パスは `/records` です。ブラウザーから任意のDropboxパスは指定できません。
 以後、項目の「この項目の記録を保存」で端末とDropboxの両方に保存します。
 
 別端末では共通アクセスコード入力後に「利用者一覧を更新」を押し、「既存の利用者」から本人のIDを選択して接続します。IDを直接入力しても接続できます。氏名・立場を変えてもIDは変わりません。従来版の保存済みIDも引き続き使用できます。
@@ -71,7 +73,10 @@ https://hiroshitakaoka-tech.github.io/learning-map/
 Dropboxのファイル改訂番号（rev）で同時編集を検知し、古い記録からの上書きを拒否します。
 競合時はこの端末のJSONを書き出してからDropboxを読み直し、内容を確認してください。
 Dropboxとの通信に失敗しても、記録は端末内に残ります。オンライン復帰時に自動再送し、手動でも「Dropboxへ保存」を再実行できます。保存中に追加された編集も未同期として保持・再送します。競合後の自動再送は停止します。
-Dropboxの共有リンクを知るだけでは、Workerの認証なしにAPIから更新できません。
+Dropboxの共有リンクはこのアプリ専用保存領域と無関係です。Workerの認証なしにAPIから更新できません。
+
+## 保存先変更時の移行
+以前の `/原因追跡型学力診断/records` や別のDropboxアプリにJSONがあっても、App folder方式の新アプリから直接読み取れません。自動移行・上書きは行わず、管理者が必要なJSONを安全に手動移動するか、別途権限のある移行プロセスでコピーしてください。既存の端末内記録とJSONバックアップは維持されます。
 
 ## 未完了の前提
 このリポジトリにはWorkerコードがありますが、CloudflareへのDeploy、Dropbox APIアプリ作成と認可、3つのSecretの登録は別途管理者作業が必要です。完了するまでオンライン同期は動作しません。
