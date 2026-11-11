@@ -55,7 +55,7 @@ async function connect(){
   setRecords(nextRecords);cache();ready=true;els.id.value=id;els.name.value=active.name;els.role.value=active.role;
   if(conflict)message('⚠ 競合：端末の未同期JSONを保存してからDropboxを読み直してください。上書きは停止中です。',true);
   else if(dirty)await upload();else message('接続済：'+active.name+'のDropbox記録を読み込みました。');
-  await loadUsers(false);
+  await loadUsers(false).catch(()=>{});
  }catch(e){message('接続失敗：'+e.message+'。端末内の記録は保持しています。',true)}
  finally{connecting=false;renderActive()}
 }
@@ -73,7 +73,7 @@ async function upload(){
   const r=await request('/records/'+sentUser.id,'PUT',{profile,rev:sentRev});rev=r.rev;
   dirty=version!==sentVersion;cache();
   message(dirty?'端末の追加編集を送信待ち…':'Dropbox保存完了：'+active.name+'（'+new Date().toLocaleString('ja-JP')+'）。');
-  if(!dirty)await loadUsers(false);
+  if(!dirty)await loadUsers(false).catch(()=>{});
  }catch(e){dirty=true;conflict=e.status===409;cache();message(conflict?'⚠ 競合：別端末が更新しました。未同期JSONを保存してから「Dropboxから読み直す」を選んでください。上書きしていません。':'⚠ 未同期：送信に失敗しました（'+e.message+'）。端末の記録を保持しています。オンライン復帰時に再送します。',true)}
  finally{saving=false;renderActive();if(dirty&&!conflict&&version!==sentVersion){clearTimeout(saveTimer);saveTimer=setTimeout(upload,300)}}
 }
@@ -85,7 +85,7 @@ async function reloadRemote(){
  try{const r=await request('/records/'+active.id);if(!validRemote(r,active.id))throw Error('保存形式が不正です');if(version!==startVersion)throw Error('読み込み中に編集されました。再度読み込んでください');
   // Preserve a recovery snapshot even when the user elects to discard local edits.
   if(dirty)localStorage.setItem(KEY_CACHE+active.id+'_beforeReload',JSON.stringify({user:active,rev,records}));
-  active=r.profile.user;rev=r.rev;dirty=false;conflict=false;version++;setRecords(r.profile.records);cache();message('Dropbox最新版を読み込みました。');await loadUsers(false)
+  active=r.profile.user;rev=r.rev;dirty=false;conflict=false;version++;setRecords(r.profile.records);cache();message('Dropbox最新版を読み込みました。');await loadUsers(false).catch(()=>{})
  }catch(e){message('読み込み失敗：'+e.message,true)}finally{connecting=false;renderActive()}
 }
 function options(first){return '<option value="">'+first+'</option>'+peers.map(u=>`<option value="${escape(u.id)}">${escape(u.name)}［${escape(u.role)}］ ${escape(u.id.slice(-6))}</option>`).join('')}
