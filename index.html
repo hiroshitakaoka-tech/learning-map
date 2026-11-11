@@ -106,8 +106,45 @@ body[data-records-open="true"] .layout > [data-pane="records"]{display:block}
   body[data-records-open="true"] .records-table{min-width:0;font-size:9px}
   body[data-records-open="true"] .records-table th,body[data-records-open="true"] .records-table td{padding:4px}
 }
+
+/* Dropbox collaboration panel */
+.cloud-panel{margin:10px 14px;border:1px solid #cadbe9;background:#fff;border-radius:12px;padding:12px;box-shadow:0 2px 8px #1232}
+.cloud-panel summary{font-weight:700;cursor:pointer;font-size:14px;list-style:disclosure-closed}
+.cloud-fields{display:grid;grid-template-columns:1.5fr 1fr 1.2fr 1fr;gap:9px;align-items:end;margin:12px 0}
+.cloud-fields label{font-size:12px;font-weight:700;display:block;color:#345}
+.cloud-fields input,.cloud-fields select{width:100%;height:42px;padding:8px;border:1px solid #b7cde0;border-radius:7px;background:#fff}
+.cloud-panel button{border:1px solid #bdd0e0;border-radius:7px;background:#f5faff;color:#174e82;padding:9px 12px;margin:3px 4px 3px 0;min-height:38px}
+.cloud-panel button.main{background:#175382;color:white;border-color:#175382}
+.cloud-panel button:disabled{opacity:.55}
+.cloud-panel .cloud-tip{font-size:12px;color:#536b80;line-height:1.55}
+.cloud-message{background:#edf7f5;color:#0d574d;padding:9px 12px;border-radius:7px;margin:9px 0;font-size:13px;line-height:1.6}
+.cloud-message[data-error="true"]{color:#852e22;background:#fff0eb}
+.cloud-table-scroll{max-height:330px;overflow:auto}
+.cloud-panel table{width:100%;border-collapse:collapse;font-size:12px;min-width:620px}
+.cloud-panel td,.cloud-panel th{padding:8px;border-bottom:1px solid #dbe4ee;text-align:left;vertical-align:top}
+.cloud-panel th{background:#edf4fa}
+@media(max-width:900px){.cloud-fields{grid-template-columns:1fr 1fr}}
+@media(max-width:570px){.cloud-panel{margin:7px;padding:10px}.cloud-fields{grid-template-columns:1fr}.cloud-panel button{font-size:12px}}
 </style></head><body data-active-tab="search" data-graph-mode="cards">
 <header><div><h1>小1～中1｜原因追跡型・学力診断／補習マップ</h1><p>全274課題にインドネシア語参考訳を追加｜本人の理解度は実際の診断で判定</p></div><div class="counts"><span class="pill" id="countNodes"></span><span class="pill" id="countEdges"></span><span class="pill" id="countDone"></span><span class="pill">Bahasa Indonesia：274 / 274</span><button type="button" class="header-results-btn" id="openRecordsBtn">記録一覧・ダウンロード</button></div></header>
+
+<details id="cloudPanel" class="cloud-panel">
+ <summary>☁ Dropbox共有記録（利用者名で接続・複数端末で共有）</summary>
+ <p class="cloud-tip">既存の端末内記録はそのまま残ります。オンライン共有には別途Cloudflare Workerの初期設定が必要です。学校の先生には共通アクセスコードを伝えるだけで使えます。</p>
+ <div class="cloud-fields">
+  <label>使用者の氏名<input id="cloudName" placeholder="例：高岡" autocomplete="name" maxlength="60"></label>
+  <label>立場<select id="cloudRole"><option>保護者</option><option>担任</option><option>教科主任</option><option>教頭</option><option>その他</option></select></label>
+  <label>共通アクセスコード<input id="cloudCode" type="password" placeholder="8文字以上を推奨" autocomplete="off"></label>
+  <label>接続API URL<input id="cloudUrl" type="url" inputmode="url" placeholder="https://xxxx.workers.dev"></label>
+ </div>
+ <div><button id="cloudConnect" class="main" type="button">この氏名でDropboxに接続</button><button id="cloudSave" type="button" disabled>Dropboxへ保存</button><button id="cloudReload" type="button" disabled>Dropboxから読み直す</button></div>
+ <div class="cloud-message" id="cloudStatus" role="status">未接続：診断は従来通り端末内に保存されます。</div>
+ <p class="cloud-tip">共通アクセスコードはこのタブのセッション内のみ保持。保存中に別端末から更新された場合は自動上書きを停止します。氏名は本人認証ではありません。</p>
+ <hr>
+ <div><button id="cloudUsers" type="button" disabled>利用者一覧を更新</button><button id="cloudAll" type="button" disabled>全員の記録一覧を表示</button><button id="cloudAllCSV" type="button" disabled>全員のCSV</button><button id="cloudAllHTML" type="button" disabled>全員のHTML</button></div>
+ <label class="cloud-tip">特定の利用者の記録を閲覧（自分の記録は変更しない）<select id="cloudPeer"><option value="">接続後に選択できます</option></select></label>
+ <div id="cloudAllTable"></div>
+</details>
 <nav class="mobile-tabs" aria-label="画面切替">
 <button type="button" class="mobile-tab" data-target="search" aria-selected="true">① 単元を探す</button>
 <button type="button" class="mobile-tab" data-target="map" aria-selected="false">② 系統を調べる</button>
@@ -212,7 +249,7 @@ for(const e of E){if(!included.has(e.from)||!included.has(e.to))continue;if(!sho
 for(const n of arr){let p=pos[n.id],st=rec(n.id).status,sel=n.id===selected;let fill=sel?'#184f80':(COLORS[st]||'#e6eaf0'),ink=sel?'white':'#142b40';let t=n.title.length>11?[n.title.slice(0,11),n.title.slice(11,23)]:[n.title];out.push(`<g class="nbox" data-node="${n.id}"><rect x="${p.x+5}" y="${p.y}" width="155" height="59" rx="7" fill="${fill}" stroke="${sel?'#072a4f':'#b7c9d8'}" stroke-width="${sel?2.5:1}"/><text x="${p.x+12}" y="${p.y+16}" font-size="10" fill="${ink}" opacity=".85">${n.id} / ${esc(n.subject)}</text><text x="${p.x+12}" y="${p.y+32}" font-size="11.1" fill="${ink}" font-weight="650">${esc(t[0])}</text>${t[1]?`<text x="${p.x+12}" y="${p.y+46}" font-size="11.1" fill="${ink}" font-weight="650">${esc(t[1])}</text>`:''}<title>${esc(n.subject+' '+n.grade+' '+n.title)}</title></g>`)}$('graph').innerHTML=out.join('');$('graphTitle').textContent=`${chosen.subject} ${chosen.grade}｜${chosen.title}（前提・関連 ${arr.length-1}件）`;$('graph').querySelectorAll('[data-node]').forEach(el=>el.onclick=()=>setSelected(el.getAttribute('data-node'),true));renderMobilePath();}
 function nextAdvice(n){let status=rec(n.id).status;if(status==='習得確認')return 'この項目は習得確認。関連する下位項目をすべて検査する必要はありません。ただし別のつまずきがあれば再評価。';if(status==='言語障壁')return 'まず母語で概念の理解を確認し、日本語の語彙・読解を別の課題として支援してください。';let es=(PARENTS[n.id]||[]).filter(e=>e.type==='必須前提候補').sort((a,b)=>BY[b.from].g-BY[a.from].g);let next=es.find(e=>rec(e.from).status!=='習得確認');if(status==='未判定')return '最初に右の診断課題を試します。誤答の場合だけ、前提知識へ遡ってください。';if(next)return '前提知識の確認候補：'+BY[next.from].grade+'「'+BY[next.from].title+'」。クリックで選択できます（原因を断定するものではありません）。';return '登録された必須前提候補は習得確認済み、または見つかりません。出題形式、日本語の影響、当該単元固有の理解を再確認してください。'}
 function detail(){let n=BY[selected],r=rec(selected);let ups=(PARENTS[selected]||[]).map(e=>`${BY[e.from].grade} ${BY[e.from].title}［${e.type}］`);let downstream=(CHILDREN[selected]||[]).map(e=>`${BY[e.to].grade} ${BY[e.to].title}`).slice(0,10);$('detail').innerHTML=`<div class="mobile-notice">診断結果の入力後、下の「この項目の記録を保存」を押してください。別端末にも引き継ぐ場合は、「単元を探す」画面からJSONを共有します。</div><div class="twobtn" style="justify-content:flex-start"><span class="tag gradebadge">${n.subject} ${n.grade}</span><span class="tag">${n.domain}</span><span class="tag">優先度：${n.priority}</span></div><h2>${esc(n.title)}</h2><div class="field"><label>原因追跡の次の一手</label><div class="note">${esc(nextAdvice(n))}</div></div><div class="field"><label>診断課題（提案）</label><div class="readbox">${esc(n.question)}</div>${n.idn?`<div style="margin-top:7px" class="readbox"><b>Bahasa Indonesia（参考訳）</b>\n${esc(n.idn)}</div>`:''}</div><div class="mini" style="margin-top:7px">※ 参考訳です。設問に必要な図・表・文章・実験用具は別途用意してください。国語の漢字・助詞・日本語の読解や英語の運用は、該当する言語そのものを使って評価します。</div><div class="field"><label>確認の観点</label><div class="readbox">${esc(n.success)}</div></div><div class="field"><label>1回目の結果</label><select id="one">${opts(['未実施','正答・説明可','一部正答','誤答・説明困難','体調等で判定保留'],r.one)}</select></div><div class="field"><label>別日・別問題の結果</label><select id="two">${opts(['未実施','正答・説明可','一部正答','誤答・説明困難','体調等で判定保留'],r.two)}</select></div><div class="field"><label>日本語の影響（母語でも確認）</label><select id="lang">${opts(['未確認','日本語でのみ困難','母語でも困難','言語影響を認めない','保留'],r.lang)}</select></div><div class="field"><label>総合判定（手動）</label><select id="status">${opts(['未判定','習得確認','部分習得','要補習','言語障壁','保留'],r.status)}</select><div class="mini" id="hint"></div></div><div class="field"><label>確認日</label><input type="date" id="date" value="${esc(r.date)}"/></div><div class="field"><label>根拠・解答過程のメモ</label><textarea id="memo" placeholder="どの問題で、どこを誤ったか。母語での説明結果など。">${esc(r.memo)}</textarea></div><div class="twobtn"><button class="dark" id="saveRec">この項目の記録を保存</button><button id="goParent">前提知識を表示</button></div><div class="divider"></div><div class="field"><label>現在の単元の前提候補</label><div class="sub">${ups.length?ups.map(esc).join('<br>'):'系統上の前提ノードなし（前提知識不要という意味ではありません）'}</div></div><div class="field"><label>この知識が関係する後続単元</label><div class="sub">${downstream.length?downstream.map(esc).join('<br>'):'登録なし'}</div></div><div class="field"><label>補習の基本手順</label><div class="readbox">${esc(n.remedy)}</div></div><details><summary>資料・根拠・留保</summary><p class="sub">${esc(n.sourceType)}</p><p class="mini">${esc(n.sourceName)}</p><a class="link" href="${esc(n.sourceUrl)}" target="_blank" rel="noopener">${esc(n.sourceUrl)}</a>${n.schoolFile?`<p class="mini">ユーザー提供：${esc(n.schoolFile)}（端末内資料であり、公開リンクではありません）</p>`:''}<div class="note">本項目の名称・矢印・問題は教育的な診断用に再構成。矢印は原因確定の証拠ではありません。履修記録がない以上、未履修と未習得も区別します。</div></details>`;
-$('saveRec').onclick=()=>{records[selected]={status:$('status').value,one:$('one').value,two:$('two').value,lang:$('lang').value,date:$('date').value,memo:$('memo').value};save();renderList();graph();detail()};$('goParent').onclick=()=>{let parent=(PARENTS[selected]||[]).find(e=>e.type!=='関連知識')||(PARENTS[selected]||[])[0];if(parent)setSelected(parent.from,true);else alert('登録された前提ノードはありません。')};['one','two','lang','status'].forEach(id=>$(id).addEventListener('change',hint));hint();}
+$('saveRec').onclick=()=>{records[selected]={status:$('status').value,one:$('one').value,two:$('two').value,lang:$('lang').value,date:$('date').value,memo:$('memo').value};save();if(window.CloudSync)window.CloudSync.onRecordSave();renderList();graph();detail()};$('goParent').onclick=()=>{let parent=(PARENTS[selected]||[]).find(e=>e.type!=='関連知識')||(PARENTS[selected]||[])[0];if(parent)setSelected(parent.from,true);else alert('登録された前提ノードはありません。')};['one','two','lang','status'].forEach(id=>$(id).addEventListener('change',hint));hint();}
 function hint(){if(!$('one')||!$('two'))return;let a=$('one').value,b=$('two').value,l=$('lang').value, txt='';if(a==='正答・説明可'&&b==='正答・説明可')txt='双方の確認は良好。ただし、応用場面の理解まで断定しません。';else if(a.startsWith('誤答')&&b.startsWith('誤答'))txt='同様の困難が再現。母語・図示などで要因を確認後に補習判定を検討。';else if(l==='日本語でのみ困難')txt='教科知識の不足とは別に言語障壁として記録することを検討。';else txt='1問・1回の正答や誤答では確定しません。別日・別問題で再確認。';$('hint').textContent=txt;}
 function opts(values,current){return values.map(v=>`<option ${v===current?'selected':''}>${esc(v)}</option>`).join('')}
 function saveAs(contents,name,type){const blob=new Blob([contents],{type});const u=URL.createObjectURL(blob);let a=document.createElement('a');a.href=u;a.download=name;document.body.append(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(u),1500)}
@@ -261,4 +298,4 @@ function exportReadableHTML(){
  saveAs(report,reportFilename('html'),'text/html;charset=utf-8');
 }
 init();
-</script></body></html>
+</script><script src="./cloud-sync.js"></script></body></html>
