@@ -1,6 +1,8 @@
-/** GitHub Pages -> Worker -> Dropbox. Never log credentials or records. */
+/** GitHub Pages -> Worker -> Dropbox App Folder. Never log credentials or records. */
 const SITE = 'https://hiroshitakaoka-tech.github.io';
-const PREFIX = '/原因追跡型学力診断/records';
+// Dropbox App Folder scopes every Dropbox API path to /Apps/<app-name>/.
+// The application may access only this folder and its children.
+export const PREFIX = '/records';
 const MAX_BODY = 400_000;
 const ROLES = ['保護者','担任','教科主任','教頭','その他'];
 const STATUS = ['未判定','習得確認','部分習得','要補習','言語障壁','保留'];

@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import worker,{apiArg} from '../worker/worker.js';
+import worker,{apiArg,PREFIX} from '../worker/worker.js';
 const origin='https://hiroshitakaoka-tech.github.io',id='u-0123456789abcdef01234567';
 const env={DROPBOX_APP_KEY:'fixture-key',DROPBOX_REFRESH_TOKEN:'fixture-refresh',MAP_ACCESS_CODE:'fixture-code'};
 const profile=()=>({format:'learning-map-profile-v2',user:{id,name:'架空のテスト利用者',role:'保護者'},updatedAt:new Date().toISOString(),records:{M611:{status:'要補習',memo:'日本語・Bahasa Indonesia'}}});
@@ -11,10 +11,10 @@ function provider(){
  return {calls,fetch:async(url,init)=>{
   calls.push(url);
   if(url.endsWith('/oauth2/token'))return json({access_token:'fixture-access'});
-  if(url.endsWith('/files/create_folder_v2'))return json({metadata:{}});
+  if(url.endsWith('/files/create_folder_v2')){assert.equal(JSON.parse(init.body).path,'/records');return json({metadata:{}})}
   if(url.endsWith('/files/list_folder'))return json({entries:file?[{'.tag':'file',name:id+'.json'}]:[],has_more:false});
   const arg=init.headers['Dropbox-API-Arg'];assert.ok(/^[\x00-\x7f]*$/.test(arg));new Headers(init.headers);
-  assert.equal(JSON.parse(arg).path,'/原因追跡型学力診断/records/'+id+'.json');
+  assert.equal(JSON.parse(arg).path,'/records/'+id+'.json');
   if(url.endsWith('/files/download'))return file?json(file.profile,200,{'Dropbox-API-Result':JSON.stringify({rev:file.rev})}):json({error:{'.tag':'path',path:{'.tag':'not_found'}}},409);
   if(url.endsWith('/files/upload')){
    const {mode}=JSON.parse(arg);
@@ -24,7 +24,8 @@ function provider(){
   throw Error('Unexpected provider operation');
  }};
 }
-test('Japanese path uses valid ASCII API headers',()=>assert.equal(JSON.parse(apiArg({path:'/原因追跡型学力診断'})).path,'/原因追跡型学力診断'));
+test('App Folder-relative path never names the shared Dropbox folder',()=>assert.equal(PREFIX,'/records'));
+test('Japanese path uses valid ASCII API headers',()=>assert.equal(JSON.parse(apiArg({path:'/日本語'})).path,'/日本語'));
 test('health, authentication, Origin and preflight do not call Dropbox',async()=>{
  const original=globalThis.fetch;globalThis.fetch=()=>{throw Error('Should not call provider')};
  try{assert.equal((await worker.fetch(req('/health'),env)).status,200);assert.equal((await worker.fetch(req('/users','GET',undefined,{'X-Map-Access-Code':'wrong'}),env)).status,401);assert.equal((await worker.fetch(req('/users','GET',undefined,{Origin:'https://evil.example'}),env)).status,403);const preflight=await worker.fetch(req('/users','OPTIONS'),env);assert.equal(preflight.status,204);assert.equal(preflight.headers.get('Access-Control-Allow-Origin'),origin);assert.equal((await worker.fetch(req('/users'),{})).status,503)}finally{globalThis.fetch=original}

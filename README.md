@@ -2,9 +2,9 @@
 
 公開アプリ: https://hiroshitakaoka-tech.github.io/learning-map/
 
-**Dropboxでの複数利用者記録の共有機能を追加しました。**
+**Dropboxでの複数利用者記録の共有機能を追加しました。** 保存先はDropboxの **App folder方式によるアプリ専用フォルダ** です。既存の共有フォルダへの同期ではありません。
 
-Dropboxとの同期を有効にするには、管理者によるOAuthアプリ認可とCloudflare Workerの初期設定が必要です。未設定のままでも、以前と同じ端末内保存・JSONバックアップ機能は使用できます。
+Dropboxとの同期を有効にするには、管理者が **Scoped access → App folder** の新規Dropbox APIアプリを作成・OAuth認可し、Cloudflare Workerの初期設定を行う必要があります。未設定のままでも、以前と同じ端末内保存・JSONバックアップ機能は使用できます。
 
 初期設定の手順: [SYNC_SETUP.md](./SYNC_SETUP.md)
 
